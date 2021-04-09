@@ -1,7 +1,7 @@
-function l6470_send (parm: number) {
-    pins.digitalWritePin(DigitalPin.P16, 0)
-    cmd = pins.spiWrite(parm)
-    pins.digitalWritePin(DigitalPin.P16, 1)
-}
-let cmd = 0
-L6740.Initialize()
+L6470.Initialize(DigitalPin.P16)
+basic.forever(function () {
+    L6470.Run(Dir.CW, Speed.High)
+    basic.pause(1000)
+    L6470.Run(Dir.CCW, Speed.High)
+    basic.pause(1000)
+})

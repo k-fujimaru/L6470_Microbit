@@ -4,8 +4,7 @@
     "dependencies": {
         "core": "*",
         "radio": "*",
-        "microphone": "*",
-        "pxt-sonar": "github:microsoft/pxt-sonar#v0.0.5"
+        "microphone": "*"
     },
     "files": [
         "main.blocks",
@@ -19,5 +18,5 @@
     "supportedTargets": [
         "microbit"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "tsprj"
 }
