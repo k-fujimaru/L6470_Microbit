@@ -13,6 +13,50 @@ enum Speed{
     //% block="高速"
     High = 0x4000
 }
+
+enum MicroSteps{
+    FullStep = 0x0,
+    HalfStep = 0x1,
+    S4 = 0x2,
+    S8 = 0x3,
+    S16 = 0x4,
+    S32 = 0x5,
+    S64 = 0x6,
+    S128 = 0x7,
+}
+
+enum L6470_Commands{
+    ABS_POS,
+    EL_POS,
+    MARK,
+    SPEED,
+    ACC,
+    DEC,
+    MAX_SPEED,
+    MIN_SPEED,
+    KVAL_HOLD,
+    KVAL_RUN,
+    KVAL_ACC,
+    KVAL_DEC,
+    INT_SPD,
+    ST_SLP,
+    FN_SLP_ACC,
+    FN_SLP_DEC,
+    K_THERM,
+    ADC_OUT,
+    OCD_TH,
+    STALL_TH,
+    FS_SPD,
+    STEP_MODE,
+    ALARM_EN,
+    CONFIG,
+    STATUS,
+    RESERVED1 = 0x1A,
+    RESERVED2 = 0x1B,
+}
+
+
+
 //% weight=100 color=#0fbc11 icon="" block="モーター"
 namespace L6470 {
     let l6470 :L6470
@@ -21,10 +65,11 @@ namespace L6470 {
      * モータードライバとの通信に必要な設定を行います
      */
     //% weight=999
+    //% advanced=false
     //% block="モータードライバを初期化する %ssPin "
     export function Initialize(ssPin: DigitalPin):void{
         l6470 = new L6470()
-        l6470.Initialize(ssPin, 7)
+        l6470.Initialize(ssPin, MicroSteps.S128)
     }
 
 
@@ -76,7 +121,7 @@ namespace L6470 {
         csPin: DigitalPin
         microStep: number
 
-        Initialize(ss: DigitalPin, microStep: number){
+        Initialize(ss: DigitalPin, microStep: MicroSteps){
             this.csPin = ss
             this.microStep = microStep
             //SPIの設定
@@ -84,15 +129,66 @@ namespace L6470 {
             pins.spiPins(DigitalPin.P15, DigitalPin.P14, DigitalPin.P13)
             pins.spiFormat(8, 3)
             pins.spiFrequency(1000000)
-            // ドライバの設定
-            this.setParam(0x07, 0x20, 10) //最大回転スピード
-            this.setParam(0x09, 0xFF, 8) //モーター停止中の電圧設定
-            this.setParam(0x0A, 0xFF, 8) //モーター低速回転時の電圧設定
-            this.setParam(0x0B, 0xFF, 8) //モーター加速中の電圧設定
-            this.setParam(0x0C, 0xFF, 8) //モーター減速中の電圧設定
-            this.setParam(0x13, 0xF, 4) //オーバーカレントの電流スレッショルド
-            this.setParam(0x14, 0x7F, 7) //ストールの電流スレッショルド
-            this.setParam(0x16, 0x7, 8) //マイクロステップの設定
+            // ドライバの初期設定
+            this.setParam(L6470_Commands.MAX_SPEED, 0x20) //最大回転スピード
+            this.setParam(L6470_Commands.KVAL_HOLD, 0xFF) //モーター停止中の電圧設定
+            this.setParam(L6470_Commands.KVAL_RUN, 0xFF) //モーター低速回転時の電圧設定
+            this.setParam(L6470_Commands.KVAL_ACC, 0xFF) //モーター加速中の電圧設定
+            this.setParam(L6470_Commands.KVAL_DEC, 0xFF) //モーター減速中の電圧設定
+            this.setParam(L6470_Commands.OCD_TH, 0xF) //オーバーカレントの電流スレッショルド
+            this.setParam(L6470_Commands.STALL_TH, 0x7F) //ストールの電流スレッショルド
+            this.setParam(L6470_Commands.STEP_MODE, microStep) //マイクロステップの設定
+        }
+
+        getRegisterLength(command: L6470_Commands): number{
+            switch(command){
+                case L6470_Commands.ABS_POS:
+                    return 22
+                case L6470_Commands.EL_POS:
+                    return 9
+                case L6470_Commands.MARK:
+                    return 22
+                case L6470_Commands.SPEED:
+                    return 20
+                case L6470_Commands.ACC:
+                    return 12
+                case L6470_Commands.DEC:
+                    return 12
+                case L6470_Commands.MAX_SPEED:
+                    return 10
+                case L6470_Commands.MIN_SPEED:
+                    return 13
+                case L6470_Commands.KVAL_HOLD :
+                case L6470_Commands.KVAL_RUN :
+                case L6470_Commands.KVAL_ACC :
+                case L6470_Commands.KVAL_DEC :
+                    return 8
+                case L6470_Commands.INT_SPD :
+                    return 14
+                case L6470_Commands.ST_SLP :
+                case L6470_Commands.FN_SLP_ACC :
+                case L6470_Commands.FN_SLP_DEC :
+                    return 8
+                case L6470_Commands.K_THERM :
+                    return 4
+                case L6470_Commands.ADC_OUT :
+                    return 5
+                case L6470_Commands.OCD_TH :
+                    return 4
+                case L6470_Commands.STALL_TH :
+                    return 7
+                case L6470_Commands.FS_SPD :
+                    return 10
+                case L6470_Commands.STEP_MODE :
+                case L6470_Commands.ALARM_EN :
+                    return 8
+                case L6470_Commands.CONFIG :
+                case L6470_Commands.STATUS :
+                    return 16
+                case L6470_Commands.STEP_MODE :
+                    return 8
+            }
+            return 0;
         }
 
         // 回転
@@ -117,10 +213,12 @@ namespace L6470 {
         }
 
         //L6470の設定レジスタに書き込む
-        setParam(parameter: number, value: number, valueBitLength: number){
+        setParam(parameter: L6470_Commands, value: number){
+            const valueBitLength = this.getRegisterLength(parameter)
+
             this.sendData(parameter & 0x1f) //000[レジスタアドレス]でsetParam
-            const byteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
-            for(let i = byteLength; i >= 0; i--){
+            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
+            for(let i = valueByteLength; i >= 0; i--){
                 let sendByte = value >> (8 * i)
                 this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
             }
