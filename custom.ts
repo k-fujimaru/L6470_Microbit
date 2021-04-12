@@ -13,7 +13,6 @@ enum Speed{
     //% block="高速"
     High = 0x4000
 }
-
 //% weight=100 color=#0fbc11 icon="" block="モーター"
 namespace L6470 {
     let l6470 :L6470
@@ -25,8 +24,9 @@ namespace L6470 {
     //% block="モータードライバを初期化する %ssPin "
     export function Initialize(ssPin: DigitalPin):void{
         l6470 = new L6470()
-        l6470.Initialize(ssPin)
+        l6470.Initialize(ssPin, 7)
     }
+
 
     /**
      * 最大速度を設定します
@@ -74,9 +74,11 @@ namespace L6470 {
 
     export class L6470{
         csPin: DigitalPin
+        microStep: number
 
-        Initialize(ss: DigitalPin){
+        Initialize(ss: DigitalPin, microStep: number){
             this.csPin = ss
+            this.microStep = microStep
             //SPIの設定
             pins.digitalWritePin(this.csPin, 1)
             pins.spiPins(DigitalPin.P15, DigitalPin.P14, DigitalPin.P13)
