@@ -24,8 +24,6 @@ enum HoldMode{
     Release = 0x00 
 }
 
-
-
 enum MicroSteps{
     FullStep = 0x0,
     HalfStep = 0x1,
@@ -57,7 +55,7 @@ enum L6470_MotionCommands{
 }
 
 enum L6470_RegisterCommands{
-    ABS_POS,
+    ABS_POS = 0x01,
     EL_POS,
     MARK,
     SPEED,
@@ -85,7 +83,6 @@ enum L6470_RegisterCommands{
     RESERVED1 = 0x1A,
     RESERVED2 = 0x1B,
 }
-
 
 
 //% weight=100 color=#0fbc11 icon="" block="モーター"
@@ -131,7 +128,7 @@ namespace L6470 {
     export function Run(dir : Dir , speed : Speed): void{
         let command
         command = L6470_MotionCommands.Run
-        command += dir //末尾1桁で回転方向指定
+        command |= dir //末尾1桁で回転方向指定
 
         let speedReg: number
         speedReg = speed //定数で定義している
@@ -249,7 +246,6 @@ namespace L6470 {
         //L6470の設定レジスタに書き込む
         setParam(parameter: L6470_RegisterCommands, value: number){
             const valueBitLength = this.getRegisterLength(parameter)
-
             this.sendData(parameter & 0x1f) //000[レジスタアドレス]でsetParam
             const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
             for(let i = valueByteLength; i >= 0; i--){
@@ -264,7 +260,7 @@ namespace L6470 {
             const valueBitLength = this.getRegisterLength(parameter)
             let tmpParam: number = 0
 
-            this.sendData(parameter & 0x1f) //000[レジスタアドレス]でsetParam
+            this.sendData(0x20 | parameter & 0x1f ) //001[レジスタアドレス]でgetParam
             const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
             for(let i = valueByteLength; i >= 0; i--){
                 let sendByte = 0x00
