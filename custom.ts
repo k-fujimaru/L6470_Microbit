@@ -116,7 +116,8 @@ namespace L6470 {
      */
     //% block="%angle °回転させる"
     export function MoveTo(angle: number):void{
-        
+        const dir = angle >= 0 ? Dir.CW : Dir.CCW
+        l6470.run(dir, Math.abs(angle))
     }
 
     /**
@@ -126,13 +127,7 @@ namespace L6470 {
      */
     //% block="%dir に %speed で回転させる"
     export function Run(dir : Dir , speed : Speed): void{
-        let command
-        command = L6470_MotionCommands.Run
-        command |= dir //末尾1桁で回転方向指定
-
-        let speedReg: number
-        speedReg = speed //定数で定義している
-        l6470.sendMotionCommand(command, speedReg)
+        l6470.run(dir, speed)
     }
 
     /**
@@ -159,10 +154,12 @@ namespace L6470 {
     export class L6470{
         csPin: DigitalPin
         microStep: number
+        stepOfLap: number
 
         Initialize(ss: DigitalPin, microStep: MicroSteps){
             this.csPin = ss
             this.microStep = microStep
+            this.stepOfLap = 200 //1回転あたりのステップ数
             //SPIの設定
             pins.digitalWritePin(this.csPin, 1)
             pins.spiPins(DigitalPin.P15, DigitalPin.P14, DigitalPin.P13)
@@ -230,6 +227,34 @@ namespace L6470 {
             return 0;
         }
 
+        //角度をマイクロステップに変換
+        convertAngleToMicrostep(angle: number): number{
+            const fullStep = this.stepOfLap / (360 / angle)
+            const microStep = fullStep * 2 ^ this.microStep
+
+            return microStep
+        }
+
+        run(dir: Dir, speed: number){
+            let command
+            command = L6470_MotionCommands.Run
+            command |= dir //末尾1桁で回転方向指定
+
+            let speedReg: number
+            speedReg = speed * (2 ^ this.microStep) //定数で定義している
+            this.sendCommand(command, speedReg, 20)
+        }
+
+        move(dir: Dir, fullstep: number){
+            let command
+            command = L6470_MotionCommands.Move
+            command |= dir //末尾1桁で回転方向指定
+
+            const microStep = fullstep * (2 ^ this.microStep)
+            this.sendCommand(command, microStep, 22)
+        }
+
+        // 停止コマンド
         stop(stopMode: StopMode, holdMode: HoldMode){
             let command = L6470_MotionCommands.Stop
             command += stopMode
@@ -255,7 +280,7 @@ namespace L6470 {
 
             const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
             for(let i = valueByteLength; i >= 0; i--){
-                let sendByte = value >> (8 * i)
+                let sendByte = value >> (8 * i) //TODO 余剰となる上位ビットを0にする
                 tmpParam += this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
             }
 
