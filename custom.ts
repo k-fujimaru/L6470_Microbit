@@ -157,16 +157,32 @@ namespace L6470 {
     /**
      * 励磁を解除します
      */
-    //% block="力を抜く"
+    //% block="力を抜く"  advanced=true
     export function Release():void{
         l6470.stop(StopMode.Soft, HoldMode.Release)
     }
 
+    
+    /**
+     * パラメーターを設定します
+     */
+    //% block="%reg を %value に設定する" advanced=true
+    export function setParameter(reg: L6470_RegisterCommands, value: number): void{
+        l6470.setParam(reg, value)
+    }
 
+    /**
+     * パラメーターを取得します
+     */
+    //% block="%reg を取得する" advanced=true
+    export function getParameter(reg: L6470_RegisterCommands): number{
+        return l6470.getParam(reg)
+    }
 
     /*
     * クラス
     */
+    //%
     export class L6470{
         csPin: DigitalPin
         microStep: number
