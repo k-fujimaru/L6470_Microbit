@@ -151,6 +151,11 @@ namespace L6470 {
         l6470.stop(StopMode.Soft, HoldMode.Release)
     }
 
+
+
+    /*
+    * クラス
+    */
     export class L6470{
         csPin: DigitalPin
         microStep: number
@@ -236,37 +241,43 @@ namespace L6470 {
         // 動作系のコマンドを送信する
         sendMotionCommand(command: number, value: number){
             this.sendData(command)
-            const byteLength = 3 //動作系コマンドは一律3バイト
+            const byteLength = 3
             for(let i = byteLength - 1; i >= 0; i--){
                 let sendByte = value >> (8 * i)
                 this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
             }
         }
 
-        //L6470の設定レジスタに書き込む
-        setParam(parameter: L6470_RegisterCommands, value: number){
-            const valueBitLength = this.getRegisterLength(parameter)
-            this.sendData(parameter & 0x1f) //000[レジスタアドレス]でsetParam
+        //コマンドを送信する
+        sendCommand(command: number, value: number, valueBitLength: number): number{
+            let tmpParam: number = 0 //応答格納仮変数
+            this.sendData(command) //コマンド部
+
             const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
             for(let i = valueByteLength; i >= 0; i--){
                 let sendByte = value >> (8 * i)
-                this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
+                tmpParam += this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
             }
+
+            return tmpParam;
         }
 
 
+        //L6470の設定レジスタに書き込む
+        setParam(parameter: L6470_RegisterCommands, value: number){
+            const comm = parameter & 0x1f //000[レジスタアドレス]でsetParam
+            const valueBitLength = this.getRegisterLength(parameter)
+            this.sendCommand(comm, value, valueBitLength)
+        }
+
         //L6470の設定レジスタを読み込む
         getParam(parameter: L6470_RegisterCommands): number{
+            const comm = 0x20 | parameter & 0x1f //001[レジスタアドレス]でgetParam
+            const value = 0x00 //データ読み出し時のValueは0
             const valueBitLength = this.getRegisterLength(parameter)
-            let tmpParam: number = 0
+            const tmpParam = this.sendCommand(comm, value, valueBitLength)
 
-            this.sendData(0x20 | parameter & 0x1f ) //001[レジスタアドレス]でgetParam
-            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
-            for(let i = valueByteLength; i >= 0; i--){
-                let sendByte = 0x00
-                tmpParam += this.sendData(sendByte) << (8 * i) //上位ビットから順に8bitずつ送信する
-            }
-            return tmpParam;
+            return tmpParam
         }
         
         //下位0xff分をSPIで送信する
