@@ -131,6 +131,22 @@ namespace L6470 {
     }
 
     /**
+     * 原点に移動します
+     */
+    //% block="原点位置に戻る"
+    export function GoHome(): void{
+        l6470.goHome()
+    }
+
+    /**
+     * 今の位置を原点に設定します
+     */
+    //% block="原点に設定する"
+    export function setHome(): void{
+        l6470.setHome()
+    }
+
+    /**
      * 回転を止めます
      */
     //% block="回転を止める"
@@ -263,29 +279,17 @@ namespace L6470 {
             this.sendData(command)
         }
 
-        // 動作系のコマンドを送信する
-        sendMotionCommand(command: number, value: number){
-            this.sendData(command)
-            const byteLength = 3
-            for(let i = byteLength - 1; i >= 0; i--){
-                let sendByte = value >> (8 * i)
-                this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
-            }
+        goHome(){
+            //this.sendData(L6470_MotionCommands.GoHome)
+            this.sendCommand(L6470_MotionCommands.GoHome, 0, 0)
         }
 
-        //コマンドを送信する
-        sendCommand(command: number, value: number, valueBitLength: number): number{
-            let tmpParam: number = 0 //応答格納仮変数
-            this.sendData(command) //コマンド部
-
-            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
-            for(let i = valueByteLength; i >= 0; i--){
-                let sendByte = value >> (8 * i) //TODO 余剰となる上位ビットを0にする
-                tmpParam += this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
-            }
-
-            return tmpParam;
+        setHome(){
+            this.sendCommand(L6470_MotionCommands.ResetPos, 0, 0)
+            //this.sendData(L6470_MotionCommands.ResetPos)
         }
+
+
 
 
         //L6470の設定レジスタに書き込む
@@ -305,6 +309,20 @@ namespace L6470 {
             return tmpParam
         }
         
+        //コマンドを送信する
+        sendCommand(command: number, value: number, valueBitLength: number): number{
+            let tmpParam: number = 0 //応答格納仮変数
+            this.sendData(command) //コマンド部
+
+            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
+            for(let i = valueByteLength; i >= 0; i--){
+                let sendByte = value >> (8 * i) //TODO 余剰となる上位ビットを0にする
+                tmpParam += this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
+            }
+
+            return tmpParam;
+        }
+
         //下位0xff分をSPIで送信する
         private sendData (parameter: number): number {
             pins.digitalWritePin(this.csPin, 0)
