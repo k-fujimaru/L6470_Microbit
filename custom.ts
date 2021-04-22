@@ -7,11 +7,11 @@ enum Dir {
 
 enum Speed{
     //% block="低速"
-    Low = 0x100,
+    Low = 0x400,
     //% block="中速"
-    Mid = 0x160,
+    Mid = 0x1000,
     //% block="高速"
-    High = 0x4000
+    High = 0x2000
 }
 
 enum StopMode{
@@ -117,7 +117,7 @@ namespace L6470 {
     //% block="%angle °回転させる"
     export function MoveTo(angle: number):void{
         const dir = angle >= 0 ? Dir.CW : Dir.CCW
-        l6470.run(dir, Math.abs(angle))
+        l6470.move(dir, Math.abs(angle))
     }
 
     /**
@@ -198,7 +198,7 @@ namespace L6470 {
             pins.spiFormat(8, 3)
             pins.spiFrequency(1000000)
             // ドライバの初期設定
-            this.setParam(L6470_RegisterCommands.MAX_SPEED, 0x20) //最大回転スピード
+            this.setParam(L6470_RegisterCommands.MAX_SPEED, 0x20) //最大回転スピード//もとは0x20
             this.setParam(L6470_RegisterCommands.KVAL_HOLD, 0xFF) //モーター停止中の電圧設定
             this.setParam(L6470_RegisterCommands.KVAL_RUN, 0xFF) //モーター低速回転時の電圧設定
             this.setParam(L6470_RegisterCommands.KVAL_ACC, 0xFF) //モーター加速中の電圧設定
@@ -261,10 +261,10 @@ namespace L6470 {
 
         //角度をマイクロステップに変換
         convertAngleToMicrostep(angle: number): number{
-            const fullStep = this.stepOfLap / (360 / angle)
-            const microStep = fullStep * 2 ^ this.microStep
+            const fullStep = (this.stepOfLap / (360 / angle))
+            const microstep = fullStep * (2 ** this.microStep)
 
-            return microStep
+            return microstep
         }
 
         run(dir: Dir, speed: number){
@@ -277,13 +277,15 @@ namespace L6470 {
             this.sendCommand(command, speedReg, 20)
         }
 
-        move(dir: Dir, fullstep: number){
+        move(dir: Dir, angle: number){
             let command
             command = L6470_MotionCommands.Move
             command |= dir //末尾1桁で回転方向指定
+            serial.writeLine("command:" + command.toString())
 
-            const microStep = fullstep * (2 ^ this.microStep)
-            this.sendCommand(command, microStep, 22)
+            const microstep = this.convertAngleToMicrostep(angle)
+            
+            this.sendCommand(command, microstep, 22)
         }
 
         // 停止コマンド
