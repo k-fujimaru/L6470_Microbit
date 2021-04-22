@@ -7,11 +7,11 @@ enum Dir {
 
 enum Speed{
     //% block="低速"
-    Low = 0x100,
+    Low = 0x400,
     //% block="中速"
-    Mid = 0x160,
+    Mid = 0x1000,
     //% block="高速"
-    High = 0x4000
+    High = 0x2000
 }
 
 enum StopMode{
@@ -23,8 +23,6 @@ enum HoldMode{
     Hold = 0x10,
     Release = 0x00 
 }
-
-
 
 enum MicroSteps{
     FullStep = 0x0,
@@ -57,7 +55,7 @@ enum L6470_MotionCommands{
 }
 
 enum L6470_RegisterCommands{
-    ABS_POS,
+    ABS_POS = 0x01,
     EL_POS,
     MARK,
     SPEED,
@@ -85,7 +83,6 @@ enum L6470_RegisterCommands{
     RESERVED1 = 0x1A,
     RESERVED2 = 0x1B,
 }
-
 
 
 //% weight=100 color=#0fbc11 icon="" block="モーター"
@@ -119,7 +116,8 @@ namespace L6470 {
      */
     //% block="%angle °回転させる"
     export function MoveTo(angle: number):void{
-        
+        const dir = angle >= 0 ? Dir.CW : Dir.CCW
+        l6470.move(dir, Math.abs(angle))
     }
 
     /**
@@ -129,13 +127,23 @@ namespace L6470 {
      */
     //% block="%dir に %speed で回転させる"
     export function Run(dir : Dir , speed : Speed): void{
-        let command
-        command = L6470_MotionCommands.Run
-        command += dir //末尾1桁で回転方向指定
+        l6470.run(dir, speed)
+    }
 
-        let speedReg: number
-        speedReg = speed //定数で定義している
-        l6470.sendMotionCommand(command, speedReg)
+    /**
+     * 原点に移動します
+     */
+    //% block="原点位置に戻る"
+    export function GoHome(): void{
+        l6470.goHome()
+    }
+
+    /**
+     * 今の位置を原点に設定します
+     */
+    //% block="原点に設定する"
+    export function setHome(): void{
+        l6470.setHome()
     }
 
     /**
@@ -149,25 +157,48 @@ namespace L6470 {
     /**
      * 励磁を解除します
      */
-    //% block="力を抜く"
+    //% block="力を抜く"  advanced=true
     export function Release():void{
         l6470.stop(StopMode.Soft, HoldMode.Release)
     }
 
+    
+    /**
+     * パラメーターを設定します
+     */
+    //% block="%reg を %value に設定する" advanced=true
+    export function setParameter(reg: L6470_RegisterCommands, value: number): void{
+        l6470.setParam(reg, value)
+    }
+
+    /**
+     * パラメーターを取得します
+     */
+    //% block="%reg を取得する" advanced=true
+    export function getParameter(reg: L6470_RegisterCommands): number{
+        return l6470.getParam(reg)
+    }
+
+    /*
+    * クラス
+    */
+    //%
     export class L6470{
         csPin: DigitalPin
         microStep: number
+        stepOfLap: number
 
         Initialize(ss: DigitalPin, microStep: MicroSteps){
             this.csPin = ss
             this.microStep = microStep
+            this.stepOfLap = 200 //1回転あたりのステップ数
             //SPIの設定
             pins.digitalWritePin(this.csPin, 1)
             pins.spiPins(DigitalPin.P15, DigitalPin.P14, DigitalPin.P13)
             pins.spiFormat(8, 3)
             pins.spiFrequency(1000000)
             // ドライバの初期設定
-            this.setParam(L6470_RegisterCommands.MAX_SPEED, 0x20) //最大回転スピード
+            this.setParam(L6470_RegisterCommands.MAX_SPEED, 0x20) //最大回転スピード//もとは0x20
             this.setParam(L6470_RegisterCommands.KVAL_HOLD, 0xFF) //モーター停止中の電圧設定
             this.setParam(L6470_RegisterCommands.KVAL_RUN, 0xFF) //モーター低速回転時の電圧設定
             this.setParam(L6470_RegisterCommands.KVAL_ACC, 0xFF) //モーター加速中の電圧設定
@@ -228,6 +259,36 @@ namespace L6470 {
             return 0;
         }
 
+        //角度をマイクロステップに変換
+        convertAngleToMicrostep(angle: number): number{
+            const fullStep = (this.stepOfLap / (360 / angle))
+            const microstep = fullStep * (2 ** this.microStep)
+
+            return microstep
+        }
+
+        run(dir: Dir, speed: number){
+            let command
+            command = L6470_MotionCommands.Run
+            command |= dir //末尾1桁で回転方向指定
+
+            let speedReg: number
+            speedReg = speed * (2 ^ this.microStep) //定数で定義している
+            this.sendCommand(command, speedReg, 20)
+        }
+
+        move(dir: Dir, angle: number){
+            let command
+            command = L6470_MotionCommands.Move
+            command |= dir //末尾1桁で回転方向指定
+            serial.writeLine("command:" + command.toString())
+
+            const microstep = this.convertAngleToMicrostep(angle)
+            
+            this.sendCommand(command, microstep, 22)
+        }
+
+        // 停止コマンド
         stop(stopMode: StopMode, holdMode: HoldMode){
             let command = L6470_MotionCommands.Stop
             command += stopMode
@@ -236,43 +297,50 @@ namespace L6470 {
             this.sendData(command)
         }
 
-        // 動作系のコマンドを送信する
-        sendMotionCommand(command: number, value: number){
-            this.sendData(command)
-            const byteLength = 3 //動作系コマンドは一律3バイト
-            for(let i = byteLength - 1; i >= 0; i--){
-                let sendByte = value >> (8 * i)
-                this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
-            }
+        goHome(){
+            //this.sendData(L6470_MotionCommands.GoHome)
+            this.sendCommand(L6470_MotionCommands.GoHome, 0, 0)
         }
+
+        setHome(){
+            this.sendCommand(L6470_MotionCommands.ResetPos, 0, 0)
+            //this.sendData(L6470_MotionCommands.ResetPos)
+        }
+
+
+
 
         //L6470の設定レジスタに書き込む
         setParam(parameter: L6470_RegisterCommands, value: number){
+            const comm = parameter & 0x1f //000[レジスタアドレス]でsetParam
             const valueBitLength = this.getRegisterLength(parameter)
-
-            this.sendData(parameter & 0x1f) //000[レジスタアドレス]でsetParam
-            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
-            for(let i = valueByteLength; i >= 0; i--){
-                let sendByte = value >> (8 * i)
-                this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
-            }
+            this.sendCommand(comm, value, valueBitLength)
         }
-
 
         //L6470の設定レジスタを読み込む
         getParam(parameter: L6470_RegisterCommands): number{
+            const comm = 0x20 | parameter & 0x1f //001[レジスタアドレス]でgetParam
+            const value = 0x00 //データ読み出し時のValueは0
             const valueBitLength = this.getRegisterLength(parameter)
-            let tmpParam: number = 0
+            const tmpParam = this.sendCommand(comm, value, valueBitLength)
 
-            this.sendData(parameter & 0x1f) //000[レジスタアドレス]でsetParam
-            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
-            for(let i = valueByteLength; i >= 0; i--){
-                let sendByte = 0x00
-                tmpParam += this.sendData(sendByte) << (8 * i) //上位ビットから順に8bitずつ送信する
-            }
-            return tmpParam;
+            return tmpParam
         }
         
+        //コマンドを送信する
+        sendCommand(command: number, value: number, valueBitLength: number): number{
+            let tmpParam: number = 0 //応答格納仮変数
+            this.sendData(command) //コマンド部
+
+            const valueByteLength = Math.floor((valueBitLength - 1) / 8) //送信ビット数は8ビット単位で切り上げ
+            for(let i = valueByteLength; i >= 0; i--){
+                let sendByte = value >> (8 * i) //TODO 余剰となる上位ビットを0にする
+                tmpParam += this.sendData(sendByte) //上位ビットから順に8bitずつ送信する
+            }
+
+            return tmpParam;
+        }
+
         //下位0xff分をSPIで送信する
         private sendData (parameter: number): number {
             pins.digitalWritePin(this.csPin, 0)
