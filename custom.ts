@@ -105,7 +105,7 @@ namespace L6470 {
      * @param speed 移動速度
      */
     //% weight=900 block="最高速度を %speed に設定する"
-    export function SetMaxSpeed(speed: Speed):void{
+    export function SetMaxSpeed(speed: number):void{
         l6470.setParam(L6470_RegisterCommands.MAX_SPEED, speed)
     }
 
