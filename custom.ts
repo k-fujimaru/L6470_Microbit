@@ -281,8 +281,7 @@ namespace L6470 {
             let command
             command = L6470_MotionCommands.Move
             command |= dir //末尾1桁で回転方向指定
-            serial.writeLine("command:" + command.toString())
-
+            
             const microstep = this.convertAngleToMicrostep(angle)
             
             this.sendCommand(command, microstep, 22)
