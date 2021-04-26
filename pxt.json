@@ -2,8 +2,7 @@
     "name": "L6470-MotorDriver",
     "description": "L6470のライブラリ",
     "dependencies": {
-        "core": "*",
-        "microphone": "*"
+        "core": "*"
     },
     "files": [
         "main.blocks",
