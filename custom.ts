@@ -5,15 +5,6 @@ enum Dir {
     CCW = 1
 }
 
-enum Speed{
-    //% block="低速"
-    Low = 0x400,
-    //% block="中速"
-    Mid = 0x1000,
-    //% block="高速"
-    High = 0x2000
-}
-
 enum StopMode{
     Soft = 0x0,
     Hard = 0x8
@@ -104,9 +95,10 @@ namespace L6470 {
      * 最大速度を設定します
      * @param speed 移動速度
      */
-    //% weight=900 block="最高速度を %speed に設定する"
-    export function SetMaxSpeed(speed: number):void{
-        l6470.setParam(L6470_RegisterCommands.MAX_SPEED, speed)
+    //% weight=900 block="最高速度を毎分 %rpm 回転に設定する"
+    export function SetMaxSpeed(rpm: number):void{
+        const speedReg = Math.round(rpm * l6470.stepOfLap * 65536 / 1000 / 1000) // データシート記載の数式から近似値
+        l6470.setParam(L6470_RegisterCommands.MAX_SPEED, speedReg)
     }
 
 
@@ -123,11 +115,11 @@ namespace L6470 {
     /**
      * 方向と角度を指定して、停止信号を送るまで回転させます
      * @param dir 回転方向
-     * @param speed 回転速度
+     * @param rpm 回転速度
      */
-    //% block="%dir に %speed で回転させる"
-    export function Run(dir : Dir , speed : Speed): void{
-        l6470.run(dir, speed)
+    //% block="%dir に毎分 %rpm で回転させる"
+    export function Run(dir : Dir , rpm : number): void{
+        l6470.run(dir, rpm)
     }
 
     /**
@@ -267,13 +259,14 @@ namespace L6470 {
             return microstep
         }
 
-        run(dir: Dir, speed: number){
+        run(dir: Dir, rpm: number){
             let command
             command = L6470_MotionCommands.Run
             command |= dir //末尾1桁で回転方向指定
 
             let speedReg: number
-            speedReg = speed * (2 ^ this.microStep) //定数で定義している
+            speedReg = Math.round(rpm * this.stepOfLap * 67108 / 1000 ) // データシート記載の数式から近似値
+            //speedReg = speed * (2 ^ this.microStep) //定数で定義している
             this.sendCommand(command, speedReg, 20)
         }
 
