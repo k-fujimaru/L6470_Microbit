@@ -28,7 +28,8 @@ namespace L6470 {
 
 
         setMaxSpeed(rpm : number) {
-            const speedReg = Math.round(rpm * this.stepOfLap * 65536 / 1000 / 1000) // データシート記載の数式から近似値
+            const rps = rpm / 60
+            const speedReg = Math.round(rps * this.stepOfLap * 65536 / 1000 / 1000) // データシート記載の数式から近似値
             this.setParam(L6470_RegisterCommands.MAX_SPEED, speedReg)
         }
 
@@ -44,8 +45,10 @@ namespace L6470 {
             let command
             command = L6470_MotionCommands.Run
             command |= dir //末尾1桁で回転方向指定
+            const rps = rpm / 60
+
             let speedReg: number
-            speedReg = Math.round(rpm * this.stepOfLap * 67108 / 1000) // データシート記載の数式から近似値
+            speedReg = Math.round(rps * this.stepOfLap * 67108 / 1000) // データシート記載の数式から近似値
 
             this.sendCommand(command, speedReg, 20)
         }
