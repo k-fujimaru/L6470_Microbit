@@ -27,6 +27,7 @@ enum MicroSteps{
 }
 
 enum L6470_MotionCommands{
+    NOP = 0x00,
     Run = 0x50,
     StepClock = 0x58,
     Move = 0x40,
