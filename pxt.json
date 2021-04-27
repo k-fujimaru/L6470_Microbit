@@ -9,7 +9,10 @@
         "main.blocks",
         "main.ts",
         "README.md",
-        "custom.ts"
+        "enums.ts",
+        "blocks.ts",
+        "l6470.ts",
+        "l6470_extend.ts"
     ],
     "testFiles": [
         "test.ts"
