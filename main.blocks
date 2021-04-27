@@ -1,1 +1,1 @@
-<xml xmlns="https://developers.google.com/blockly/xml"><block type="pxt-on-start" id="t@uVeflG4suB.NH)?qhV" x="0" y="0"/></xml>
+<xml xmlns="https://developers.google.com/blockly/xml"><block type="pxt-on-start" id="m4BwR;,$o}]w_-cAr9,-" x="0" y="0"/><block type="L6470_setParameter" id="I7H}jTP`zUw-oKBch{kA" disabled="true" x="5" y="127"><field name="reg">L6470_RegisterCommands.ABS_POS</field><value name="value"><shadow type="math_number" id="(ddqv:=i*+*d@D*^!n*L"><field name="NUM">0</field></shadow></value></block></xml>

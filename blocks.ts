@@ -15,7 +15,7 @@ namespace L6470 {
 
     /**
      * 最大速度を設定します
-     * @param speed 移動速度
+     * @param rpm 移動速度
      */
     //% weight=900 block="最高速度を毎分 %rpm 回転に設定する"
     export function SetMaxSpeed(rpm: number): void{
@@ -38,7 +38,7 @@ namespace L6470 {
      * @param dir 回転方向
      * @param rpm 回転速度
      */
-    //% block="%dir に毎分 %rpm で回転させる"
+    //% block="%dir に毎分 %rpm 回転で回転させる"
     export function Run(dir : Dir , rpm : number): void{
         l6470.run(dir, rpm)
     }
