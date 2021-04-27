@@ -12,6 +12,9 @@ namespace L6470 {
             this.microStep = microStep
             this.stepOfLap = 200 //1回転あたりのステップ数
 
+            //ドライバの初期化
+            this.deviceReset()
+
             // ドライバの初期設定
             this.setParam(L6470_RegisterCommands.MAX_SPEED, 0x20) //最大回転スピード
             this.setParam(L6470_RegisterCommands.KVAL_HOLD, 0xFF) //モーター停止中の電圧設定

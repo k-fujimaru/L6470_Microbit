@@ -9,7 +9,7 @@ namespace L6470 {
     //% advanced=false
     //% block="モータードライバを初期化する %ssPin "
     export function Initialize(ssPin: DigitalPin):void{
-        l6470 = new L6470()
+        l6470 = new L6470_extend()
         l6470.Initialize(ssPin, MicroSteps.S128)
     }
 
