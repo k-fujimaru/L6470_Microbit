@@ -1,6 +1,6 @@
 //% weight=100 color=#0fbc11 icon="" block="モーター"
 namespace L6470 {
-    let l6470 :L6470
+    let l6470 :L6470_extend
 
     /**
      * モータードライバとの通信に必要な設定を行います
@@ -18,9 +18,8 @@ namespace L6470 {
      * @param speed 移動速度
      */
     //% weight=900 block="最高速度を毎分 %rpm 回転に設定する"
-    export function SetMaxSpeed(rpm: number):void{
-        const speedReg = Math.round(rpm * l6470.stepOfLap * 65536 / 1000 / 1000) // データシート記載の数式から近似値
-        l6470.setParam(L6470_RegisterCommands.MAX_SPEED, speedReg)
+    export function SetMaxSpeed(rpm: number): void{
+        l6470.setMaxSpeed(rpm)
     }
 
 
