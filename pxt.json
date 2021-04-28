@@ -1,5 +1,6 @@
 {
     "name": "L6470-MotorDriver",
+    "version": "1.0.0",
     "description": "L6470のライブラリ",
     "dependencies": {
         "core": "*",
