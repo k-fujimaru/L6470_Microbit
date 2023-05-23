@@ -47,7 +47,7 @@ namespace L6470 {
         //下位0xff分をSPIで送信する
         private sendData(parameter: number): number {
             pins.digitalWritePin(this.csPin, 0)
-            serial.writeLine("send:" + (parameter & 0xff))
+            //serial.writeLine("send:" + (parameter & 0xff))
             const returnValue = pins.spiWrite(parameter & 0xff)
             pins.digitalWritePin(this.csPin, 1)
 
